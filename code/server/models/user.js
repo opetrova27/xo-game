@@ -6,8 +6,8 @@ const
   randtoken = require('rand-token'),
   mongo = promise.promisifyAll(require('mongodb')).MongoClient;
 
-function create(name, logger) {
-  const user_data = { name: name, accessToken: randtoken.generate(8), refreshToken: randtoken.generate(8) };
+function create(name, gameToken, logger) {
+  const user_data = { name: name, accessToken: randtoken.generate(8), refreshToken: randtoken.generate(8), gameToken: gameToken };
 
   logger.log('info', 'user create user_data %s', user_data);
   return mongo.connectAsync(config.mongodburl)

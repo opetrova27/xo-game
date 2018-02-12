@@ -16,27 +16,56 @@ const
   });
 
 function create(req, res) {
-  user.create(req.body.name, logger).then(function (user_data) {
+  logic.create(req.body.name, req.body.size, logger).then(function (new_game) {
     var response = { status: "OK", code: 0, message: "OK" };
-    if (user_data.status == "success") {
-      response.accessToken = user_data.accessToken;
-      response.refreshToken = user_data.refreshToken;      
-      logic.create(user_data.name, req.body.size, logger).then(function (new_game) {
-        Object.assign(response, new_game);
-        res.json(response);
+    if (new_game.status == "success") {
+      user.create(req.body.name, new_game.gameToken, logger).then(function (user_data) {
+        var response = { status: "OK", code: 0, message: "OK" };
+        if (user_data.status == "success") {
+          Object.assign(response, new_game);
+          response.accessToken = user_data.accessToken;
+          response.refreshToken = user_data.refreshToken;
+          res.json(response);
+        } else {
+          res.json(user_data);
+        }
       });
     } else {
-      res.json(user_data);
+      res.json(new_game);
     }
   });
+
+
 };
 
 function list(req, res) {
-
+  var response = { status: "OK", code: 0, message: "OK" };
+  logic.list(logger).then(function (content) {
+    Object.assign(response, content);
+    res.json(content);
+  });
 };
 
 function join(req, res) {
-
+  var response = { status: "OK", code: 0, message: "OK" };
+  logic.join(logger, req.body.gameToken, req.body.name).then(
+    function (joined) {
+      if (joined.status == "success") {
+        user.create(req.body.name, req.body.gameToken, logger).then(function (user_data) {
+          var response = { status: "OK", code: 0, message: "OK" };
+          if (user_data.status == "success") {
+            response.accessToken = user_data.accessToken;
+            response.refreshToken = user_data.refreshToken;
+            res.json(response);
+          } else {
+            res.json(user_data);
+          }
+        });
+      } else {
+        res.json(joined);
+      }
+    }
+  );
 };
 
 function step(req, res) {
