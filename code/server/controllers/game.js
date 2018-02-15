@@ -2,10 +2,12 @@
 
 const
     express = require('express'),
-    game = require('../models/game');
+    game = require('../models/game'),
+    user = require('../models/user');
 
 let router = express.Router();
 
+router.post('/update', user.updateTokens);
 router.post('/new', game.create);
 router.get('/list', game.list);
 router.post('/join', game.join);
