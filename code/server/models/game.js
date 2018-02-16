@@ -69,19 +69,33 @@ function join(req, res) {
 };
 
 function step(req, res) {
+  var row = parseInt(req.body.row);
+  var col = parseInt(req.body.col);
+  if (Number.isInteger(row) && Number.isInteger(col)) {
+    var response = { status: "OK", code: 0, message: "OK" };
+    user.checkUser(req.get("accessToken"), req.body.name)
+      .then(function (result) {
+        if (result.status == "success") {
+          logic.step(res, result.gameToken, result.role, row, col);
+        } else {
+          res.json(result);
+        }
+      });
+  } else {
+    res.json({ status: "error", code: -1, message: "Wrong row or col" });
+  }
+};
+
+function state(req, res) {
   var response = { status: "OK", code: 0, message: "OK" };
-  user.checkUser(req.body.accessToken, req.body.gameToken)
+  user.checkUser(req.get("accessToken"), req.get("name"))
     .then(function (result) {
       if (result.status == "success") {
-        logic.step(result.gameToken, result.role, req.body.row, req.body.col);
+        logic.state(res, result.gameToken, result.role);
       } else {
         res.json(result);
       }
     });
-};
-
-function state(req, res) {
-
 };
 
 module.exports = {

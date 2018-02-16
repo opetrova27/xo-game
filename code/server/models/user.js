@@ -25,7 +25,7 @@ function updateTokens(res, name, refreshToken) {
   const tokens = generateTokens();
   const criteria = { $and: [{ name: name }, { refreshToken: refreshToken }] };
   var expired = new Date();
-  expired.setMinutes(expired.getMinutes() + 5);
+  expired.setMinutes(expired.getMinutes() + config.expiredUserMinutes);
   const options = { $set: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, expired: expired } };
   return mongo.connectAsync(config.mongodburl)
     .then(function (db) {
@@ -46,13 +46,13 @@ function checkRefreshToken(req, res) {
   return mongo.connectAsync(config.mongodburl)
     .then(function (db) {
       return db.db('ozxogame').collection('users').findOne({
-        $and: [{ refreshToken: req.body.refreshToken }, { name: req.body.name }]
+        $and: [{ refreshToken: req.get("refreshToken") }, { name: req.body.name }]
       });
     })
     .then(function (data) {
       logger.log("info", "checkRefreshToken %s", data);
       if (data === null) {
-        logger.log("info", "not found user for refresh with token %s for user %s", req.body.refreshToken, req.body.name);
+        logger.log("info", "not found user for refresh with token %s for user %s", req.get("refreshToken"), req.body.name);
         res.json({ status: "error", code: 404, message: "Not found users" });
       } else {
         logger.log("info", "found user for refresh: %s", data);
@@ -91,7 +91,7 @@ function checkUser(accessToken, name) {
 function create(name, gameToken, role) {
   const tokens = generateTokens();
   var expired = new Date();
-  expired.setMinutes(expired.getMinutes() + 5);
+  expired.setMinutes(expired.getMinutes() + config.expiredUserMinutes);
   const user_data = { name: name, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, gameToken: gameToken, role: role, expired: expired };
 
   logger.log('info', 'user create user_data %s', user_data);
