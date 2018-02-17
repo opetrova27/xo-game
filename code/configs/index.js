@@ -6,8 +6,8 @@ let localConfig = {
     mongodburl : "mongodb://admin:admin123@ds225308.mlab.com:25308/ozxogame",
     logfile : "combined.log",
     loglevel : "info",
-    expiredGameMinutes : 60,
-    expiredUserMinutes : 60
+    expiredGameMinutes : 5,
+    expiredUserMinutes : 10
 };
 
 module.exports = localConfig;

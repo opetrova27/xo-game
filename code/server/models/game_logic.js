@@ -15,7 +15,7 @@ const
     ]
   });
 
-const marker = { owner: "O", opponent: "X" };
+const marker = { owner: "X", opponent: "O" };
 
 function checkLine(line) {
   if (line.every(v => v === marker.owner)) {
@@ -33,7 +33,7 @@ function checkWin(field, size) {
   for (var row = 0; row < size; row++) {
     winner = checkLine(field[row]);
     if (winner !== false) {
-      logger.log('info', 'Found winner row %s', row);
+      logger.log('info', '[Game][checkWin] Found row=%s winner=%s', row, winner);
       return winner;
     }
   }
@@ -46,7 +46,7 @@ function checkWin(field, size) {
     }
     winner = checkLine(line);
     if (winner !== false) {
-      logger.log('info', 'Found winner col %s', col);
+      logger.log('info', '[Game][checkWin] Found col=%s winner=%s', col, winner);
       return winner;
     }
   }
@@ -59,12 +59,12 @@ function checkWin(field, size) {
   }
   winner = checkLine(diag1);
   if (winner !== false) {
-    logger.log('info', 'Found winner diag1');
+    logger.log('info', '[Game][checkWin] Found diag1 winner=%s', winner);
     return winner;
   }
   winner = checkLine(diag2);
   if (winner !== false) {
-    logger.log('info', 'Found winner diag2');
+    logger.log('info', '[Game][checkWin] Found diag2 winner=%s', winner);
     return winner;
   }
   //check draw
@@ -76,12 +76,12 @@ function checkWin(field, size) {
   return draw ? "draw" : false;
 }
 
-function doStep(res, data, role, row, col) {
+function doStep(data, role, row, col) {
   var field = data.field;
 
   // check if place already marked
   if (field[row][col] != "?") {
-    res.json({ status: "error", message: "Cannot move here", code: -1 });
+    return { status: "error", message: "Cannot move here", code: 20 };
   }
 
   // update var field
@@ -101,7 +101,7 @@ function doStep(res, data, role, row, col) {
   if (winner !== false) {
     options.state = "done";
     options.result = winner;
-    logger.log('info', 'Finish winner %s field %s', winner, field);
+    logger.log('info', '[Game][doStep] Finish winner=%s field=%s', winner, field);
   }
 
   // update db
@@ -112,12 +112,12 @@ function doStep(res, data, role, row, col) {
       return db.db('ozxogame').collection('games').update(criteria, { $set: options });
     })
     .then(function (updated) {
-      logger.log('info', 'updated: do step %s', updated);
-      res.json({ status: "success", message: "OK", code: 0 });
+      logger.log('info', '[Game][doStep] updated=%s', updated);
+      return { status: "success", message: "OK", code: 0 };
     })
     .catch(function (err) {
-      logger.log('error', 'do step error %s', err);
-      res.json({ status: "error", message: "Error while doing step", code: -1 });
+      logger.log('error', '[Game][doStep] error=%s', err);
+      return { status: "error", message: "Error while doing step", code: 21 };
     });
 }
 
@@ -129,25 +129,25 @@ function prepareStep(res, gameToken, role, row, col) {
       });
     })
     .then(function (data) {
-      logger.log("info", "step %s role %s", data, role);
       if (data === null) {
-        logger.log("info", "not found ready game with token %s", accessToken, gameToken);
-        res.json({ status: "error", code: 404, message: "Not found users" });
+        logger.log("info", "[Game][prepareStep] not found ready game with token %s", accessToken, gameToken);
+        return { status: "error", code: 17, message: "Not found users" };
       } else if (data.current != role) {
-        res.json({ status: "error", code: -1, message: "Now is " + data.current + "'s turn!!!" });
+        return { status: "error", code: 18, message: "Now is " + data.current + "'s turn!!!" };
       } else if (row < 0 || col < 0 || row >= data.size || col >= data.size) {
-        res.json({ status: "error", code: -1, message: "Row or Col is out of range" });
+        return { status: "error", code: 19, message: "Row or Col is out of range" };
       } else {
-        doStep(res, data, role, row, col);
+        logger.log("info", "[Game][prepareStep] data=%s role=%s", data, role);
+        return doStep(data, role, row, col);
       }
     })
     .catch(function (err) {
-      logger.log('error', 'step error %s', err);
-      res.json({ status: "error", message: "Error while doing step", code: -1 });
+      logger.log('error', '[Game][prepareStep] error=%s', err);
+      res.json({ status: "error", message: "Error while doing step", code: 16 });
     });
 }
 
-function state(res, gameToken, role) {
+function state(gameToken, role) {
   return mongo.connectAsync(config.mongodburl)
     .then(function (db) {
       return db.db('ozxogame').collection('games').findOne({
@@ -155,31 +155,30 @@ function state(res, gameToken, role) {
       });
     })
     .then(function (data) {
-      logger.log("info", "state %s role %s", data, role);
       if (data === null) {
-        logger.log("info", "not found ready game with token %s", accessToken, gameToken);
-        res.json({ status: "error", code: 404, message: "Not found users" });
+        logger.log("info", "[Game][state] not found: gameToken=%s", gameToken);
+        return { status: "error", code: 15, message: "Not found users" };
       } else {
-        var response = {
-          status: "success", message: "OK", code: 0,
+        logger.log("info", "[Game][state] data=%s role=%s", data, role);
+        var state = {
           gameDuration: (new Date()).getTime() - (new Date(data.started)).getTime(),
           field: data.field
         };
         if (data.result != "") {
-          response.winner = data.result;
+          state.winner = data.result;
         } else {
-          response.youTurn = data.current === role;
+          state.youTurn = data.current === role;
         }
-        res.json(response);
+        return state;
       }
     })
     .catch(function (err) {
-      logger.log('error', 'state error %s', err);
-      res.json({ status: "error", message: "Error while getting state", code: -1 });
+      logger.log('error', '[Game][state] error=%s', err);
+      return { status: "error", message: "Error while getting state", code: 14 };
     });
 }
 
-function addUserToGame(logger, gameToken, name) {
+function addUserToGame(gameToken, name) {
   const criteria = { gameToken: gameToken };
   var expired = new Date();
   expired.setMinutes(expired.getMinutes() + config.expiredGameMinutes);
@@ -189,16 +188,16 @@ function addUserToGame(logger, gameToken, name) {
       return db.db('ozxogame').collection('games').update(criteria, options);
     })
     .then(function (added) {
-      logger.log('info', 'addUserToGame %s', added);
+      logger.log('info', '[Game][addUserToGame] added=%s', added);
       return { status: "success" };
     })
     .catch(function (err) {
-      logger.log('error', 'addUserToGame error %s', err);
-      return { status: "error", message: "Error while add user", code: -1 };
+      logger.log('error', '[Game][addUserToGame] error=%s', err);
+      return { status: "error", message: "Error while adding user", code: 13 };
     });
 }
 
-function join(logger, gameToken, name) {
+function join(gameToken, name) {
   return mongo.connectAsync(config.mongodburl)
     .then(function (db) {
       return db.db('ozxogame').collection('games').findOne({
@@ -206,47 +205,50 @@ function join(logger, gameToken, name) {
       });
     })
     .then(function (data) {
-      logger.log("info", "found game: %s", data);
+      logger.log("info", "[Game][join] found game: %s", data);
       if (data === null) {
-        return { status: "error", code: 404, message: "There is no current ready games with this token" };
+        return { status: "error", code: 13, message: "There is no current ready games with this token" };
       } else {
-        return addUserToGame(logger, gameToken, name);
+        return addUserToGame(gameToken, name);
       }
+    })
+    .catch(function (err) {
+      logger.log('error', '[Game][join] error=%s', err);
+      return { status: "error", message: "Error while joining to game", code: 12 };
     });
 }
 
-function list(logger) {
+function list() {
   var now = new Date();
   return mongo.connectAsync(config.mongodburl)
     .then(function (db) {
       return db.db('ozxogame').collection('games').find(
         { expired: { "$gte": now } }).toArray();
     })
-    .then(function (result) {
-      console.log(result);
-      logger.log('info', 'game list result %s', result);
+    .then(function (foundGamesArray) {
+      logger.log('info', '[Game][list] foundGamesArray=%s', foundGamesArray);
       var games = [];
       var gameDuration;
-      for (var i = 0; i < result.length; i++) {
+      for (var i = 0; i < foundGamesArray.length; i++) {
         games.push({
-          gameToken: result[i].gameToken,
-          gameDuration: (new Date()).getTime() - (new Date(result[i].started)).getTime(),
-          owner: result[i].owner,
-          opponent: result[i].opponent,
-          size: result[i].size,
-          state: result[i].state,
-          gameResult: result[i].result
+          gameToken: foundGamesArray[i].gameToken,
+          gameDuration: (new Date()).getTime() - (new Date(foundGamesArray[i].started)).getTime(),
+          owner: foundGamesArray[i].owner,
+          opponent: foundGamesArray[i].opponent,
+          size: foundGamesArray[i].size,
+          state: foundGamesArray[i].state,
+          gameResult: foundGamesArray[i].result
         });
       }
       return { status: "success", result: games };
     })
     .catch(function (err) {
-      logger.log('error', 'game list error %s', err);
-      return { status: "error", message: "Error while find games", code: -1 };
+      logger.log('error', '[Game][list] error=%s', err);
+      return { status: "error", message: "Error while find games", code: 11 };
     });
 }
 
-function create(owner, size, logger) {
+function create(owner, size) {
   var field = [];
   for (var i = 0; i < size; i++) {
     field[i] = [];
@@ -277,17 +279,14 @@ function create(owner, size, logger) {
 
   return mongo.connectAsync(config.mongodburl)
     .then(function (db) {
-      return db.db('ozxogame');
+      return db.db('ozxogame').collection('games').insert(game)
     })
-    .then(function (db) {
-      return db.collection('games').insert(game)
-    })
-    .then(function (result) {
-      logger.log('info', 'game insert result %s', result);
-      return { status: "success", gameToken: result.ops[0].gameToken };
+    .then(function (inserted) {
+      logger.log('info', '[Game][create] inserted=%s', inserted);
+      return { status: "success", gameToken: inserted.ops[0].gameToken };
     })
     .catch(function (err) {
-      logger.log('error', 'game insert error');
+      logger.log('error', '[Game][create] error=%s', err);
       return { status: "error", message: "Error while creating game", code: -1 };
     });
 }

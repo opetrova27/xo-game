@@ -16,84 +16,93 @@ const
   });
 
 function create(req, res) {
-  logic.create(req.body.name, req.body.size, logger).then(function (new_game) {
-    var response = { status: "OK", code: 0, message: "OK" };
-    if (new_game.status == "success") {
-      user.create(req.body.name, new_game.gameToken, "owner").then(function (user_data) {
-        var response = { status: "OK", code: 0, message: "OK" };
-        if (user_data.status == "success") {
-          Object.assign(response, new_game);
-          response.accessToken = user_data.accessToken;
-          response.refreshToken = user_data.refreshToken;
-          res.json(response);
-        } else {
-          res.json(user_data);
-        }
-      });
-    } else {
-      res.json(new_game);
-    }
-  });
+  logic.create(req.body.name, req.body.size)
+    .then(function (gameCreated) {
+      if (gameCreated.status == "success") {
+        user.create(req.body.name, gameCreated.gameToken, "owner")
+          .then(function (userCreated) {
+            var response = { status: "OK", code: 0, message: "OK" };
+            if (userCreated.status == "success") {
+              Object.assign(response, gameCreated);
+              response.accessToken = userCreated.accessToken;
+              response.refreshToken = userCreated.refreshToken;
+              res.json(response);
+            } else {
+              res.json(userCreated);
+            }
+          });
+      } else {
+        res.json(gameCreated);
+      }
+    });
 
 
 };
 
 function list(req, res) {
   var response = { status: "OK", code: 0, message: "OK" };
-  logic.list(logger).then(function (content) {
-    Object.assign(response, content);
-    res.json(response);
-  });
+  logic.list()
+    .then(function (content) {
+      Object.assign(response, content);
+      res.json(response);
+    });
 };
 
 function join(req, res) {
   var response = { status: "OK", code: 0, message: "OK" };
-  logic.join(logger, req.body.gameToken, req.body.name).then(
-    function (joined) {
+  logic.join(req.body.gameToken, req.body.name)
+    .then(function (joined) {
       if (joined.status == "success") {
-        user.create(req.body.name, req.body.gameToken, "opponent").then(function (user_data) {
-          var response = { status: "OK", code: 0, message: "OK" };
-          if (user_data.status == "success") {
-            response.accessToken = user_data.accessToken;
-            response.refreshToken = user_data.refreshToken;
-            res.json(response);
-          } else {
-            res.json(user_data);
-          }
-        });
+        user.create(req.body.name, req.body.gameToken, "opponent")
+          .then(function (userCreated) {
+            var response = { status: "OK", code: 0, message: "OK" };
+            if (userCreated.status == "success") {
+              response.accessToken = userCreated.accessToken;
+              response.refreshToken = userCreated.refreshToken;
+              res.json(response);
+            } else {
+              res.json(userCreated);
+            }
+          });
       } else {
         res.json(joined);
       }
     }
-  );
+    );
 };
 
 function step(req, res) {
   var row = parseInt(req.body.row);
   var col = parseInt(req.body.col);
   if (Number.isInteger(row) && Number.isInteger(col)) {
-    var response = { status: "OK", code: 0, message: "OK" };
     user.checkUser(req.get("accessToken"), req.body.name)
-      .then(function (result) {
-        if (result.status == "success") {
-          logic.step(res, result.gameToken, result.role, row, col);
+      .then(function (userChecked) {
+        if (userChecked.status == "success") {
+          logic.step(userChecked.gameToken, userChecked.role, row, col)
+            .then(function (stepResponse) {
+              res.json(stepResponse);
+            });
         } else {
-          res.json(result);
+          res.json(userChecked);
         }
       });
   } else {
-    res.json({ status: "error", code: -1, message: "Wrong row or col" });
+    res.json({ status: "error", code: 50, message: "Wrong row or col" });
   }
 };
 
 function state(req, res) {
-  var response = { status: "OK", code: 0, message: "OK" };
   user.checkUser(req.get("accessToken"), req.get("name"))
-    .then(function (result) {
-      if (result.status == "success") {
-        logic.state(res, result.gameToken, result.role);
+    .then(function (userChecked) {
+      if (userChecked.status == "success") {
+        logic.state(userChecked.gameToken, userChecked.role)
+          .then(function (state) {
+            var response = { status: "OK", code: 0, message: "OK" };
+            Object.assign(response, state);
+            res.json(response);
+          });
       } else {
-        res.json(result);
+        res.json(userChecked);
       }
     });
 };

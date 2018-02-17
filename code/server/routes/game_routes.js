@@ -2,10 +2,11 @@
 
 const
     express = require('express'),
-    gameController = require('../controllers/game');
+    xogameController = require('../controllers/xogame');
 
 let router = express.Router();
 
-router.use('/', gameController);
+router.use('/', xogameController);
+// you can add here another games - just rename route in previous row to "/xo"
 
 module.exports = router;

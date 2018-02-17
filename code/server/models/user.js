@@ -21,24 +21,24 @@ function generateTokens(name, gameToken) {
 }
 
 function updateTokens(res, name, refreshToken) {
-  var response = { status: "OK", code: 0, message: "OK" };
-  const tokens = generateTokens();
   const criteria = { $and: [{ name: name }, { refreshToken: refreshToken }] };
   var expired = new Date();
   expired.setMinutes(expired.getMinutes() + config.expiredUserMinutes);
+  const tokens = generateTokens();
   const options = { $set: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, expired: expired } };
   return mongo.connectAsync(config.mongodburl)
     .then(function (db) {
       return db.db('ozxogame').collection('users').update(criteria, options);
     })
     .then(function (updated) {
-      logger.log('info', 'updateUserTokens %s', updated);
+      logger.log('info', '[User][updateTokens] updated=%s', updated);
+      var response = { status: "OK", code: 0, message: "OK" };
       Object.assign(response, tokens);
       res.json(response);
     })
     .catch(function (err) {
-      logger.log('error', 'updateUserTokens error %s', err);
-      res.json({ status: "error", message: "Error while updateTokens", code: -1 });
+      logger.log('error', '[User][updateTokens] error=%s', err);
+      res.json({ status: "error", message: "Error while updating tokens", code: 1 });
     });
 }
 
@@ -50,18 +50,17 @@ function checkRefreshToken(req, res) {
       });
     })
     .then(function (data) {
-      logger.log("info", "checkRefreshToken %s", data);
       if (data === null) {
-        logger.log("info", "not found user for refresh with token %s for user %s", req.get("refreshToken"), req.body.name);
-        res.json({ status: "error", code: 404, message: "Not found users" });
+        logger.log("info", "[User][checkRefreshToken] not found: refreshToken=%s name=%s", req.get("refreshToken"), req.body.name);
+        res.json({ status: "error", code: 2, message: "Not found user with this refresh token" });
       } else {
-        logger.log("info", "found user for refresh: %s", data);
+        logger.log("info", "[User][checkRefreshToken] data=%s", data);
         updateTokens(res, data.name, data.refreshToken);
       }
     })
     .catch(function (err) {
-      logger.log('error', 'checkRefreshToken error %s', err);
-      res.json({ status: "error", message: "Error while checkRefreshToken", code: -1 });
+      logger.log('error', '[User][checkRefreshToken]  error=%s', err);
+      res.json({ status: "error", message: "Error while checking refresh token", code: 2 });
     });
 }
 
@@ -73,18 +72,17 @@ function checkUser(accessToken, name) {
       });
     })
     .then(function (data) {
-      logger.log("info", "checkUser %s", data);
       if (data === null) {
-        logger.log("info", "not found user for access with token %s for user %s", accessToken, name);
-        return { status: "error", code: 404, message: "Not found users" };
+        logger.log("info", "[User][checkRefreshToken] not found: accessToken=%s name=%s", accessToken, name);
+        return { status: "error", code: 5, message: "Not found users" };
       } else {
-        logger.log("info", "found user for access: %s", data);
+        logger.log("info", "[User][checkRefreshToken] data=%s", data);
         return { status: "success", name: data.name, gameToken: data.gameToken, role: data.role };
       }
     })
     .catch(function (err) {
-      logger.log('error', 'checkUser error %s', err);
-      return { status: "error", message: "Error while checkUser", code: -1 };
+      logger.log('error', '[User][checkRefreshToken] error=%s', err);
+      return { status: "error", message: "Error while checking user", code: 3 };
     });
 }
 
@@ -93,21 +91,19 @@ function create(name, gameToken, role) {
   var expired = new Date();
   expired.setMinutes(expired.getMinutes() + config.expiredUserMinutes);
   const user_data = { name: name, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, gameToken: gameToken, role: role, expired: expired };
-
-  logger.log('info', 'user create user_data %s', user_data);
   return mongo.connectAsync(config.mongodburl)
     .then(function (db) {
       return db.db('ozxogame').collection('users').insert(user_data)
     })
-    .then(function (result) {
-      logger.log('info', 'user insert result %s', result);
-      var resp = { status: "success" };
-      Object.assign(resp, result.ops[0]);
-      return resp;
+    .then(function (inserted) {
+      logger.log('info', '[User][create] inserted=%s', inserted);
+      var response = { status: "success", message: "OK", code: 0 };
+      Object.assign(response, inserted.ops[0]);
+      return response;
     })
     .catch(function (err) {
-      logger.log('error', 'user insert err %s', err);
-      return { status: "error", message: "Error while creating user", code: -1 };
+      logger.log('error', '[User][create] error=%s', err);
+      return { status: "error", message: "Error while creating user", code: 4 };
     });
 }
 
