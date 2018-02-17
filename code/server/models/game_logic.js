@@ -121,6 +121,7 @@ function doStep(data, role, row, col) {
 }
 
 function prepareStep(gameToken, role, row, col) {
+  // find game by token
   return mongo.connectAsync(config.mongodburl)
     .then(function (db) {
       return db.db('ozxogame').collection('games').findOne({
@@ -128,12 +129,13 @@ function prepareStep(gameToken, role, row, col) {
       });
     })
     .then(function (data) {
-      if (data === null) {
+      logger.log("info", "[Game][prepareStep] data= %s", data);
+      if (data == null) {
         logger.log("info", "[Game][prepareStep] not found ready game with token %s", accessToken, gameToken);
         return { status: "error", code: 17, message: "Not found users" };
-      } else if (data.current != role) {
+      } else if (data.current != role) { // check if user's turn now
         return { status: "error", code: 18, message: "Now is " + data.current + "'s turn!!!" };
-      } else if (row < 0 || col < 0 || row >= data.size || col >= data.size) {
+      } else if (row < 0 || col < 0 || row >= data.size || col >= data.size) { // validate row and col
         return { status: "error", code: 19, message: "Row or Col is out of range" };
       } else {
         logger.log("info", "[Game][prepareStep] data=%s role=%s", data, role);
@@ -218,11 +220,10 @@ function join(gameToken, name) {
 }
 
 function list() {
-  var now = new Date();
   return mongo.connectAsync(config.mongodburl)
     .then(function (db) {
       return db.db('ozxogame').collection('games').find(
-        { expired: { "$gte": now } }).toArray();
+        { expired: { $gte: new Date() } }).toArray();
     })
     .then(function (foundGamesArray) {
       logger.log('info', '[Game][list] foundGamesArray=%s', foundGamesArray);
@@ -267,11 +268,11 @@ function create(owner, size) {
     gameToken: gameToken,
     size: size,
     field: field,
-    owner: owner,
-    opponent: "",
-    current: "",
-    state: "ready",
-    result: "",
+    owner: owner,   // owner's name
+    opponent: "",   // opponent's name
+    current: "",    // Who is next do step? opponent or owner
+    state: "ready", // can be also "playing" or "done"
+    result: "",     // after finish match sets to "owner"/"opponent" or "draw"
     started: now,
     expired: expired
   };
@@ -286,7 +287,44 @@ function create(owner, size) {
     })
     .catch(function (err) {
       logger.log('error', '[Game][create] error=%s', err);
-      return { status: "error", message: "Error while creating game", code: -1 };
+      return { status: "error", message: "Error while creating game", code: 10 };
+    });
+}
+
+function getOutdated() {
+  //getting outdated game tokens
+  return mongo.connectAsync(config.mongodburl)
+    .then(function (db) {
+      return db.db('ozxogame').collection('games').find(
+        { expired: { $lt: new Date() } }).toArray();
+    })
+    .then(function (foundGamesArray) {
+      logger.log('info', '[Game][getOutdated] foundGamesArray=%s', foundGamesArray);
+      var gameTokenArray = [];
+      for (var i = 0; i < foundGamesArray.length; i++) {
+        gameTokenArray.push(foundGamesArray[i].gameToken);
+      }
+      return { status: "success", gameTokenArray: gameTokenArray };
+    })
+    .catch(function (err) {
+      logger.log('error', '[Game][getOutdated] error=%s', err);
+      return { status: "error", message: "Error while find outdated games", code: 11 };
+    });
+}
+
+function removeOutdated(gameTokenAray) {
+  //removing outdated games by game tokens
+  mongo.connectAsync(config.mongodburl)
+    .then(function (db) {
+      return db.db('ozxogame').collection('games').remove({ gameToken: { $in: gameTokenAray } })
+    })
+    .then(function (removed) {
+      logger.log('info', '[Game][removeOutdated] removed=%s', removed);
+      return { status: "success" };
+    })
+    .catch(function (err) {
+      logger.log('error', '[Game][removeOutdated] error=%s', err);
+      return { status: "error", message: "Error while removing outdated games", code: 22 };
     });
 }
 
@@ -295,5 +333,7 @@ module.exports = {
   list: list,
   join: join,
   step: prepareStep,
-  state: state
+  state: state,
+  getOutdated: getOutdated,
+  removeOutdated: removeOutdated
 };

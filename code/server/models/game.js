@@ -16,13 +16,15 @@ const
   });
 
 function create(req, res) {
+  //create game
   logic.create(req.body.name, req.body.size)
     .then(function (gameCreated) {
+      //create user
       if (gameCreated.status == "success") {
         user.create(req.body.name, gameCreated.gameToken, "owner")
           .then(function (userCreated) {
-            var response = { status: "OK", code: 0, message: "OK" };
             if (userCreated.status == "success") {
+              var response = { status: "OK", code: 0, message: "OK" };
               Object.assign(response, gameCreated);
               response.accessToken = userCreated.accessToken;
               response.refreshToken = userCreated.refreshToken;
@@ -40,19 +42,21 @@ function create(req, res) {
 };
 
 function list(req, res) {
-  var response = { status: "OK", code: 0, message: "OK" };
   logic.list()
     .then(function (content) {
+      var response = { status: "OK", code: 0, message: "OK" };
       Object.assign(response, content);
       res.json(response);
+      removeOutdated();
     });
 };
 
 function join(req, res) {
-  var response = { status: "OK", code: 0, message: "OK" };
+  // find game and check if opponent's place empty
   logic.join(req.body.gameToken, req.body.name)
     .then(function (joined) {
       if (joined.status == "success") {
+        // if joined - create user tokens for this game
         user.create(req.body.name, req.body.gameToken, "opponent")
           .then(function (userCreated) {
             var response = { status: "OK", code: 0, message: "OK" };
@@ -100,9 +104,26 @@ function state(req, res) {
             var response = { status: "OK", code: 0, message: "OK" };
             Object.assign(response, state);
             res.json(response);
+            removeOutdated();
           });
       } else {
         res.json(userChecked);
+      }
+    });
+};
+
+function removeOutdated() {
+  //outdated games removing runs after getting games list or any game status
+  logic.getOutdated()
+    .then(function (gettingOutdated) {
+      if (gettingOutdated.status == "success" && gettingOutdated.gameTokenArray.length > 0) {
+        user.remove(gettingOutdated.gameTokenArray)
+          .then(function (removedOutdated) {
+            if (removedOutdated.status == "success") {
+              logic.removeOutdated(gettingOutdated.gameTokenArray);
+              //result of removing is not showing to users
+            }
+          })
       }
     });
 };

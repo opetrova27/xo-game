@@ -21,6 +21,7 @@ function generateTokens(name, gameToken) {
 }
 
 function updateTokens(res, name, refreshToken) {
+  // regenerating tokens and update them in db
   const criteria = { $and: [{ name: name }, { refreshToken: refreshToken }] };
   var expired = new Date();
   expired.setMinutes(expired.getMinutes() + config.expiredUserMinutes);
@@ -43,6 +44,7 @@ function updateTokens(res, name, refreshToken) {
 }
 
 function checkRefreshToken(req, res) {
+  // checking user refreshToken for repairing both tokens
   return mongo.connectAsync(config.mongodburl)
     .then(function (db) {
       return db.db('ozxogame').collection('users').findOne({
@@ -65,6 +67,7 @@ function checkRefreshToken(req, res) {
 }
 
 function checkUser(accessToken, name) {
+  // checking user accessToken
   return mongo.connectAsync(config.mongodburl)
     .then(function (db) {
       return db.db('ozxogame').collection('users').findOne({
@@ -87,6 +90,11 @@ function checkUser(accessToken, name) {
 }
 
 function create(name, gameToken, role) {
+  // user creates with two tokens:
+  // - accessToken has expired date
+  // - refreshToken - uses for regenerate both tokens
+  // also if accessToken will be compromated - fake user can use it only until expired date
+  // and veritable user can repair accessToken with help of refreshToken
   const tokens = generateTokens();
   var expired = new Date();
   expired.setMinutes(expired.getMinutes() + config.expiredUserMinutes);
@@ -107,8 +115,25 @@ function create(name, gameToken, role) {
     });
 }
 
+function remove(gameTokenAray) {
+  // removing users for expired games
+  return mongo.connectAsync(config.mongodburl)
+    .then(function (db) {
+      return db.db('ozxogame').collection('users').remove({ gameToken: { $in: gameTokenAray } })
+    })
+    .then(function (removed) {
+      logger.log('info', '[User][remove] removed=%s', removed);
+      return { status: "success" };
+    })
+    .catch(function (err) {
+      logger.log('error', '[User][remove] error=%s', err);
+      return { status: "error", message: "Error while removing outdated users", code: 22 };
+    });
+}
+
 module.exports = {
   create: create,
   updateTokens: checkRefreshToken,
-  checkUser: checkUser
+  checkUser: checkUser,
+  remove: remove
 };
