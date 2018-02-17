@@ -106,8 +106,7 @@ function doStep(data, role, row, col) {
 
   // update db
   const criteria = { gameToken: data.gameToken };
-  logger.log('info', 'update db options %s', options);
-  mongo.connectAsync(config.mongodburl)
+  return mongo.connectAsync(config.mongodburl)
     .then(function (db) {
       return db.db('ozxogame').collection('games').update(criteria, { $set: options });
     })
@@ -121,7 +120,7 @@ function doStep(data, role, row, col) {
     });
 }
 
-function prepareStep(res, gameToken, role, row, col) {
+function prepareStep(gameToken, role, row, col) {
   return mongo.connectAsync(config.mongodburl)
     .then(function (db) {
       return db.db('ozxogame').collection('games').findOne({
