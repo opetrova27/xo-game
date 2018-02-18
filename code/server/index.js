@@ -39,6 +39,7 @@ module.exports = function () {
     };
 
     return {
+        server: server, // for tests
         create: create,
         start: start
     };

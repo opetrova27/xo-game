@@ -10,4 +10,9 @@ let localConfig = {
     expiredUserMinutes : 10
 };
 
-module.exports = localConfig;
+let env = process.env.NODE_ENV || "dev";
+let envConfig = require(`./${env}`);
+
+const config = Object.assign({}, localConfig, envConfig);
+
+module.exports = config;

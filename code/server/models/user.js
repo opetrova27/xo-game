@@ -23,7 +23,7 @@ function generateTokens(name, gameToken) {
 function updateTokens(res, name, refreshToken) {
   // regenerating tokens and update them in db
   const criteria = { $and: [{ name: name }, { refreshToken: refreshToken }] };
-  var expired = new Date();
+  let expired = new Date();
   expired.setMinutes(expired.getMinutes() + config.expiredUserMinutes);
   const tokens = generateTokens();
   const options = { $set: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, expired: expired } };
@@ -33,7 +33,7 @@ function updateTokens(res, name, refreshToken) {
     })
     .then(function (updated) {
       logger.log('info', '[User][updateTokens] updated=%s', updated);
-      var response = { status: "OK", code: 0, message: "OK" };
+      let response = { status: "ok", code: 0, message: "ok" };
       Object.assign(response, tokens);
       res.json(response);
     })
@@ -80,7 +80,7 @@ function checkUser(accessToken, name) {
         return { status: "error", code: 5, message: "Not found users" };
       } else {
         logger.log("info", "[User][checkRefreshToken] data=%s", data);
-        return { status: "success", name: data.name, gameToken: data.gameToken, role: data.role };
+        return { status: "ok", name: data.name, gameToken: data.gameToken, role: data.role };
       }
     })
     .catch(function (err) {
@@ -96,7 +96,7 @@ function create(name, gameToken, role) {
   // also if accessToken will be compromated - fake user can use it only until expired date
   // and veritable user can repair accessToken with help of refreshToken
   const tokens = generateTokens();
-  var expired = new Date();
+  let expired = new Date();
   expired.setMinutes(expired.getMinutes() + config.expiredUserMinutes);
   const user_data = { name: name, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, gameToken: gameToken, role: role, expired: expired };
   return mongo.connectAsync(config.mongodburl)
@@ -105,7 +105,7 @@ function create(name, gameToken, role) {
     })
     .then(function (inserted) {
       logger.log('info', '[User][create] inserted=%s', inserted);
-      var response = { status: "success", message: "OK", code: 0 };
+      let response = { status: "ok", message: "ok", code: 0 };
       Object.assign(response, inserted.ops[0]);
       return response;
     })
@@ -123,7 +123,7 @@ function remove(gameTokenAray) {
     })
     .then(function (removed) {
       logger.log('info', '[User][remove] removed=%s', removed);
-      return { status: "success" };
+      return { status: "ok" };
     })
     .catch(function (err) {
       logger.log('error', '[User][remove] error=%s', err);

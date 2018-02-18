@@ -20,11 +20,11 @@ function create(req, res) {
   logic.create(req.body.name, req.body.size)
     .then(function (gameCreated) {
       //create user
-      if (gameCreated.status == "success") {
+      if (gameCreated.status == "ok") {
         user.create(req.body.name, gameCreated.gameToken, "owner")
           .then(function (userCreated) {
-            if (userCreated.status == "success") {
-              var response = { status: "OK", code: 0, message: "OK" };
+            if (userCreated.status == "ok") {
+              let response = { status: "ok", code: 0, message: "ok" };
               Object.assign(response, gameCreated);
               response.accessToken = userCreated.accessToken;
               response.refreshToken = userCreated.refreshToken;
@@ -44,7 +44,7 @@ function create(req, res) {
 function list(req, res) {
   logic.list()
     .then(function (content) {
-      var response = { status: "OK", code: 0, message: "OK" };
+      let response = { status: "ok", code: 0, message: "ok" };
       Object.assign(response, content);
       res.json(response);
       removeOutdated();
@@ -55,12 +55,12 @@ function join(req, res) {
   // find game and check if opponent's place empty
   logic.join(req.body.gameToken, req.body.name)
     .then(function (joined) {
-      if (joined.status == "success") {
+      if (joined.status == "ok") {
         // if joined - create user tokens for this game
         user.create(req.body.name, req.body.gameToken, "opponent")
           .then(function (userCreated) {
-            var response = { status: "OK", code: 0, message: "OK" };
-            if (userCreated.status == "success") {
+            let response = { status: "ok", code: 0, message: "ok" };
+            if (userCreated.status == "ok") {
               response.accessToken = userCreated.accessToken;
               response.refreshToken = userCreated.refreshToken;
               res.json(response);
@@ -76,12 +76,12 @@ function join(req, res) {
 };
 
 function step(req, res) {
-  var row = parseInt(req.body.row);
-  var col = parseInt(req.body.col);
+  let row = parseInt(req.body.row);
+  let col = parseInt(req.body.col);
   if (Number.isInteger(row) && Number.isInteger(col)) {
     user.checkUser(req.get("accessToken"), req.body.name)
       .then(function (userChecked) {
-        if (userChecked.status == "success") {
+        if (userChecked.status == "ok") {
           logic.step(userChecked.gameToken, userChecked.role, row, col)
             .then(function (stepResponse) {
               res.json(stepResponse);
@@ -98,16 +98,22 @@ function step(req, res) {
 function state(req, res) {
   user.checkUser(req.get("accessToken"), req.get("name"))
     .then(function (userChecked) {
-      if (userChecked.status == "success") {
+      if (userChecked.status == "ok") {
         logic.state(userChecked.gameToken, userChecked.role)
           .then(function (state) {
-            var response = { status: "OK", code: 0, message: "OK" };
+            let response = { status: "ok", code: 0, message: "ok" };
             Object.assign(response, state);
             res.json(response);
             removeOutdated();
           });
       } else {
-        res.json(userChecked);
+        logic.state(req.get("gameToken"), "view")
+        .then(function (state) {
+          let response = { status: "ok", code: 0, message: "ok" };
+          Object.assign(response, state);
+          res.json(response);
+          removeOutdated();
+        });
       }
     });
 };
@@ -116,10 +122,10 @@ function removeOutdated() {
   //outdated games removing runs after getting games list or any game status
   logic.getOutdated()
     .then(function (gettingOutdated) {
-      if (gettingOutdated.status == "success" && gettingOutdated.gameTokenArray.length > 0) {
+      if (gettingOutdated.status == "ok" && gettingOutdated.gameTokenArray.length > 0) {
         user.remove(gettingOutdated.gameTokenArray)
           .then(function (removedOutdated) {
-            if (removedOutdated.status == "success") {
+            if (removedOutdated.status == "ok") {
               logic.removeOutdated(gettingOutdated.gameTokenArray);
               //result of removing is not showing to users
             }

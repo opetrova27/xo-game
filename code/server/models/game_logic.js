@@ -28,9 +28,9 @@ function checkLine(line) {
 }
 
 function checkWin(field, size) {
-  var winner = false;
+  let winner = false;
   //check horizontal
-  for (var row = 0; row < size; row++) {
+  for (let row = 0; row < size; row++) {
     winner = checkLine(field[row]);
     if (winner !== false) {
       logger.log('info', '[Game][checkWin] Found row=%s winner=%s', row, winner);
@@ -38,10 +38,10 @@ function checkWin(field, size) {
     }
   }
   //check vertical
-  var line = [];
-  for (var col = 0; col < size; col++) {
+  let line = [];
+  for (let col = 0; col < size; col++) {
     line = [];
-    for (var row = 0; row < size; row++) {
+    for (let row = 0; row < size; row++) {
       line.push(field[row][col]);
     }
     winner = checkLine(line);
@@ -51,9 +51,9 @@ function checkWin(field, size) {
     }
   }
   //check diagonal
-  var diag1 = [];
-  var diag2 = [];
-  for (var i = 0; i < size; i++) {
+  let diag1 = [];
+  let diag2 = [];
+  for (let i = 0; i < size; i++) {
     diag1.push(field[i][i]);
     diag2.push(field[i][size - i - 1]);
   }
@@ -68,36 +68,36 @@ function checkWin(field, size) {
     return winner;
   }
   //check draw
-  var all = [];
-  for (var row = 0; row < size; row++) {
+  let all = [];
+  for (let row = 0; row < size; row++) {
     all = all.concat(field[row]);
   }
-  var draw = all.find(k => k == '?') === undefined;
+  let draw = all.find(k => k == '?') === undefined;
   return draw ? "draw" : false;
 }
 
 function doStep(data, role, row, col) {
-  var field = data.field;
+  let field = data.field;
 
   // check if place already marked
   if (field[row][col] != "?") {
     return { status: "error", message: "Cannot move here", code: 20 };
   }
 
-  // update var field
+  // update let field
   field[row][col] = marker[role];
 
   // prepare options for update db
-  var expired = new Date();
+  let expired = new Date();
   expired.setMinutes(expired.getMinutes() + config.expiredGameMinutes);
-  var options = {
+  let options = {
     field: field,
     current: role === "owner" ? "opponent" : "owner",
     expired: expired
   };
 
   // check win
-  var winner = checkWin(field, data.size);
+  let winner = checkWin(field, data.size);
   if (winner !== false) {
     options.state = "done";
     options.result = winner;
@@ -112,7 +112,7 @@ function doStep(data, role, row, col) {
     })
     .then(function (updated) {
       logger.log('info', '[Game][doStep] updated=%s', updated);
-      return { status: "success", message: "OK", code: 0 };
+      return { status: "ok", message: "ok", code: 0 };
     })
     .catch(function (err) {
       logger.log('error', '[Game][doStep] error=%s', err);
@@ -161,14 +161,22 @@ function state(gameToken, role) {
         return { status: "error", code: 15, message: "Not found users" };
       } else {
         logger.log("info", "[Game][state] data=%s role=%s", data, role);
-        var state = {
+        let state = {
           gameDuration: (new Date()).getTime() - (new Date(data.started)).getTime(),
           field: data.field
         };
         if (data.result != "") {
+          // if game already done
           state.winner = data.result;
-        } else {
+        } else if (role != "view") {
           state.youTurn = data.current === role;
+        }
+        if (role == "view") {
+          // for viewer
+          state.owner = data.owner;
+          state.opponent = data.opponent;
+          state.current = data.current;
+          state.state = data.state;
         }
         return state;
       }
@@ -181,7 +189,7 @@ function state(gameToken, role) {
 
 function addUserToGame(gameToken, name) {
   const criteria = { gameToken: gameToken };
-  var expired = new Date();
+  let expired = new Date();
   expired.setMinutes(expired.getMinutes() + config.expiredGameMinutes);
   const options = { $set: { opponent: name, current: "opponent", state: "playing", expired: expired } };
   return mongo.connectAsync(config.mongodburl)
@@ -190,7 +198,7 @@ function addUserToGame(gameToken, name) {
     })
     .then(function (added) {
       logger.log('info', '[Game][addUserToGame] added=%s', added);
-      return { status: "success" };
+      return { status: "ok" };
     })
     .catch(function (err) {
       logger.log('error', '[Game][addUserToGame] error=%s', err);
@@ -206,7 +214,7 @@ function join(gameToken, name) {
       });
     })
     .then(function (data) {
-      logger.log("info", "[Game][join] found game: %s", data);
+      logger.log("info", "[Game][join] found by gameToken=%s name=%s game: %s", gameToken, name, data);
       if (data === null) {
         return { status: "error", code: 13, message: "There is no current ready games with this token" };
       } else {
@@ -227,9 +235,9 @@ function list() {
     })
     .then(function (foundGamesArray) {
       logger.log('info', '[Game][list] foundGamesArray=%s', foundGamesArray);
-      var games = [];
-      var gameDuration;
-      for (var i = 0; i < foundGamesArray.length; i++) {
+      let games = [];
+      let gameDuration;
+      for (let i = 0; i < foundGamesArray.length; i++) {
         games.push({
           gameToken: foundGamesArray[i].gameToken,
           gameDuration: (new Date()).getTime() - (new Date(foundGamesArray[i].started)).getTime(),
@@ -240,7 +248,7 @@ function list() {
           gameResult: foundGamesArray[i].result
         });
       }
-      return { status: "success", result: games };
+      return { status: "ok", games: games };
     })
     .catch(function (err) {
       logger.log('error', '[Game][list] error=%s', err);
@@ -249,20 +257,20 @@ function list() {
 }
 
 function create(owner, size) {
-  var field = [];
-  for (var i = 0; i < size; i++) {
+  let field = [];
+  for (let i = 0; i < size; i++) {
     field[i] = [];
-    for (var j = 0; j < size; j++) {
+    for (let j = 0; j < size; j++) {
       field[i][j] = "?";
     }
   }
 
-  var now = new Date();
-  var expired = new Date();
+  let now = new Date();
+  let expired = new Date();
   expired.setMinutes(now.getMinutes() + config.expiredGameMinutes);
 
-  var randtoken = require('rand-token');
-  var gameToken = randtoken.generate(8);
+  let randtoken = require('rand-token');
+  let gameToken = randtoken.generate(8);
 
   const game = {
     gameToken: gameToken,
@@ -283,7 +291,7 @@ function create(owner, size) {
     })
     .then(function (inserted) {
       logger.log('info', '[Game][create] inserted=%s', inserted);
-      return { status: "success", gameToken: inserted.ops[0].gameToken };
+      return { status: "ok", gameToken: inserted.ops[0].gameToken };
     })
     .catch(function (err) {
       logger.log('error', '[Game][create] error=%s', err);
@@ -300,11 +308,11 @@ function getOutdated() {
     })
     .then(function (foundGamesArray) {
       logger.log('info', '[Game][getOutdated] foundGamesArray=%s', foundGamesArray);
-      var gameTokenArray = [];
-      for (var i = 0; i < foundGamesArray.length; i++) {
+      let gameTokenArray = [];
+      for (let i = 0; i < foundGamesArray.length; i++) {
         gameTokenArray.push(foundGamesArray[i].gameToken);
       }
-      return { status: "success", gameTokenArray: gameTokenArray };
+      return { status: "ok", gameTokenArray: gameTokenArray };
     })
     .catch(function (err) {
       logger.log('error', '[Game][getOutdated] error=%s', err);
@@ -320,7 +328,7 @@ function removeOutdated(gameTokenAray) {
     })
     .then(function (removed) {
       logger.log('info', '[Game][removeOutdated] removed=%s', removed);
-      return { status: "success" };
+      return { status: "ok" };
     })
     .catch(function (err) {
       logger.log('error', '[Game][removeOutdated] error=%s', err);
