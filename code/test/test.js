@@ -2,6 +2,7 @@
 
 const server = require('../server')(),
   chai = require('chai'),
+  expect = chai.expect,
   request = require('supertest'),
   config = require('../configs'),
   winston = require('winston'),
@@ -15,13 +16,17 @@ const server = require('../server')(),
     ]
   });
 
-server.create(config);
-server.start();
-
-const app = server.server,
-  expect = chai.expect;
+const app = server.create(config);
+const connection = server.start();
 
 describe('Games API Integration Tests', function () {
+
+  after(function (done) {
+    connection.close();
+    logger.log('info', '[After] Connection closed');
+    done();
+  });
+
   const ownerName = "Pamela";
   const opponentName = "Benedict";
 
@@ -48,7 +53,7 @@ describe('Games API Integration Tests', function () {
     });
   });
 
-  describe('#GET /games/list', function () {
+  describe('# Getting all games', function () {
     it('should get all games', function (done) {
       request(app)
         .get('/games/list')
@@ -104,7 +109,7 @@ describe('Games API Integration Tests', function () {
     });
   });
 
-  describe('#GET /games/state', function () {
+  describe('# Getting state for opponent', function () {
     it('should get game state', function (done) {
       request(app)
         .get('/games/state')
@@ -141,7 +146,7 @@ describe('Games API Integration Tests', function () {
     });
   });
 
-  describe('#GET /games/state', function () {
+  describe('# Getting state for owner', function () {
     it('should get game state', function (done) {
       request(app)
         .get('/games/state')
@@ -160,7 +165,7 @@ describe('Games API Integration Tests', function () {
   });
 
   //check wrong row
-  describe('## Owner step', function () {
+  describe('## Owner step 1 with wrong row', function () {
     it('should do owner step', function (done) {
       request(app)
         .post('/games/do_step')
@@ -199,7 +204,7 @@ describe('Games API Integration Tests', function () {
   });
 
   //check attempt double step
-  describe('## Owner step', function () {
+  describe('## Owner step - second try', function () {
     it('should do owner step', function (done) {
       request(app)
         .post('/games/do_step')
@@ -218,7 +223,7 @@ describe('Games API Integration Tests', function () {
   });
 
   //check view mode
-  describe('#GET /games/state', function () {
+  describe('# Getting game state for view', function () {
     it('should get game state', function (done) {
       request(app)
         .get('/games/state')
@@ -314,7 +319,7 @@ describe('Games API Integration Tests', function () {
   });
 
   // checking winner
-  describe('#GET /games/state', function () {
+  describe('# Getting game result for view', function () {
     it('should get game state', function (done) {
       request(app)
         .get('/games/state')

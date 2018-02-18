@@ -8,6 +8,7 @@ const
 
 module.exports = function () {
     let server = express(),
+        connection,
         create,
         start;
 
@@ -27,19 +28,19 @@ module.exports = function () {
         server.use(helmet.frameguard())
 
         routes.init(server);
+        return server;
     };
 
     start = function () {
         let hostname = server.get('hostname'),
             port = server.get('port');
 
-        server.listen(port, function () {
+        return server.listen(port, function () {
             console.log('Express server listening on - http://' + hostname + ':' + port);
         });
     };
 
     return {
-        server: server, // for tests
         create: create,
         start: start
     };
