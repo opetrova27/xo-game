@@ -1,8 +1,9 @@
 'use strict';
 
 const
-  gameSchema = require("./game_schema"),
-  config = require("../../configs"),
+  gameSchema = require("../schema/game"),
+  config = require("../../../configs"),
+  randtoken = require('rand-token'),
   winston = require('winston'),
   logger = winston.createLogger({
     transports: [
@@ -24,15 +25,10 @@ function create(owner, size) {
       field[i][j] = "?";
     }
   }
-
   let now = new Date();
   let expired = new Date();
   expired.setMinutes(now.getMinutes() + config.expiredGameMinutes);
-
-  let randtoken = require('rand-token');
-  let gameToken = randtoken.generate(8);
-
-  return gameSchema.create(gameToken, field, size, owner);
+  return gameSchema.create(randtoken.generate(8), field, size, owner);
 }
 
 function list() {

@@ -7,7 +7,7 @@ const
 
 let router = express.Router();
 
-router.post('/update', user.updateTokens);
+router.post('/update', user.update);
 router.post('/new', game.create);
 router.get('/list', game.list);
 router.post('/join', game.join);

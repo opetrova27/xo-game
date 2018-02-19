@@ -2,7 +2,7 @@
 
 const
   mongoose = require('mongoose'),
-  config = require("../../configs"),
+  config = require("../../../configs"),
   winston = require('winston'),
   logger = require('winston').createLogger({
     transports: [
