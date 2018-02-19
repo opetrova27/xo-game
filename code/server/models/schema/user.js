@@ -104,10 +104,10 @@ function update(criteria, options) {
 function remove(gameTokenAray) {
   return mongoose.connect(config.mongodburl)
     .then(function (connected) {
-      return User.remove({ gameToken: { $in: gameTokenAray } })
+      return User.remove({ gameToken: { $in: gameTokenAray } }).exec()
         .then(function (removed) {
-          logger.log('info', '[UserSchema][remove] removed=%s', removed);
-          return { status: "ok" };
+          logger.log('info', '[UserSchema][remove] removed=%s games=%s', removed, gameTokenAray);
+          return { status: "ok", count: removed.n };
         })
         .catch(function (err) {
           if (err) {

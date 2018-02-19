@@ -4,7 +4,7 @@ let config = {
   env: 'dev',
   logfile : "dev.log",
   loglevel : "info",
-  expiredGameMinutes : 10,
-  expiredUserMinutes : 15
+  expiredGameMinutes : 5,
+  expiredUserMinutes : 5
 };
 module.exports = config;

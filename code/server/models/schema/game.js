@@ -147,7 +147,7 @@ function remove(gameTokenAray) {
       return Game.remove({ gameToken: { $in: gameTokenAray } })
         .then(function (removed) {
           logger.log('info', '[GameSchema][remove] removed=%s', removed);
-          return { status: "ok" };
+          return { status: "ok", count: removed.n };
         })
         .catch(function (err) {
           if (err) {

@@ -357,4 +357,18 @@ describe('Games API Integration Tests', function () {
         });
     });
   });
+  
+  //remove test results and all expired and done games
+  describe('# Clear db from test data', function () {
+    it('should delete game and user rows in db', function (done) {
+      request(app)
+        .delete('/games/clear')
+        .end(function (err, res) {
+          expect(res.body.status).to.equal("ok");
+          expect(res.body.code).to.equal(0);
+          expect(res.body.message).to.equal("ok");
+          done();
+        });
+    });
+  });
 });

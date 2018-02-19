@@ -232,9 +232,9 @@ function state(gameToken, role) {
     });
 }
 
-//getting outdated game tokens
-function getOutdated() {
-  return gameSchema.list({ expired: { $lt: new Date() } })
+//getting game tokens
+function getGames(criteria) {
+  return gameSchema.list(criteria)
     .then(function (response) {
       if (response.status == "ok") {
         let gameTokenArray = [];
@@ -248,8 +248,8 @@ function getOutdated() {
     });
 }
 
-//removing outdated games by game tokens
-function removeOutdated(gameTokenAray) {
+//removing outdated or done games by game tokens
+function remove(gameTokenAray) {
   return gameSchema.remove(gameTokenAray);
 }
 
@@ -259,6 +259,6 @@ module.exports = {
   join: join,
   step: prepareStep,
   state: state,
-  getOutdated: getOutdated,
-  removeOutdated: removeOutdated
+  getGames: getGames,
+  remove: remove
 };
