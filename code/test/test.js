@@ -103,7 +103,7 @@ describe('Games API Integration Tests', function () {
         })
         .end(function (err, res) {
           expect(res.body.status).to.equal("error");
-          expect(res.body.code).to.equal(13);
+          expect(res.body.code).to.equal(11);
           done();
         });
     });
@@ -177,7 +177,7 @@ describe('Games API Integration Tests', function () {
         })
         .end(function (err, res) {
           expect(res.body.status).to.equal("error");
-          expect(res.body.code).to.equal(19);
+          expect(res.body.code).to.equal(16);
           done();
         });
     });
@@ -216,7 +216,7 @@ describe('Games API Integration Tests', function () {
         })
         .end(function (err, res) {
           expect(res.body.status).to.equal("error");
-          expect(res.body.code).to.equal(18);
+          expect(res.body.code).to.equal(15);
           done();
         });
     });

@@ -37,8 +37,6 @@ function create(req, res) {
         res.json(gameCreated);
       }
     });
-
-
 };
 
 function list(req, res) {
@@ -84,7 +82,9 @@ function step(req, res) {
         if (userChecked.status == "ok") {
           logic.step(userChecked.gameToken, userChecked.role, row, col)
             .then(function (stepResponse) {
-              res.json(stepResponse);
+              let response = { status: "ok", code: 0, message: "ok" };
+              Object.assign(response, stepResponse);
+              res.json(response);
             });
         } else {
           res.json(userChecked);
@@ -108,12 +108,12 @@ function state(req, res) {
           });
       } else {
         logic.state(req.get("gameToken"), "view")
-        .then(function (state) {
-          let response = { status: "ok", code: 0, message: "ok" };
-          Object.assign(response, state);
-          res.json(response);
-          removeOutdated();
-        });
+          .then(function (state) {
+            let response = { status: "ok", code: 0, message: "ok" };
+            Object.assign(response, state);
+            res.json(response);
+            removeOutdated();
+          });
       }
     });
 };
