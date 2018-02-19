@@ -26,8 +26,8 @@ function create(req, res) {
             if (userCreated.status == "ok") {
               let response = { status: "ok", code: 0, message: "ok" };
               Object.assign(response, gameCreated);
-              response.accessToken = userCreated.accessToken;
-              response.refreshToken = userCreated.refreshToken;
+              response.accessToken = userCreated.data.accessToken;
+              response.refreshToken = userCreated.data.refreshToken;
               res.json(response);
             } else {
               res.json(userCreated);
@@ -59,8 +59,8 @@ function join(req, res) {
           .then(function (userCreated) {
             let response = { status: "ok", code: 0, message: "ok" };
             if (userCreated.status == "ok") {
-              response.accessToken = userCreated.accessToken;
-              response.refreshToken = userCreated.refreshToken;
+              response.accessToken = userCreated.data.accessToken;
+              response.refreshToken = userCreated.data.refreshToken;
               res.json(response);
             } else {
               res.json(userCreated);

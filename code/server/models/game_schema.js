@@ -124,8 +124,8 @@ function update(gameToken, options) {
   return mongoose.connect(config.mongodburl)
     .then(function (connected) {
       return Game.update({ gameToken: gameToken }, { $set: options })
-        .then(function (added) {
-          logger.log('info', '[GameSchema][update] added=%s', added);
+        .then(function (updated) {
+          logger.log('info', '[GameSchema][update] updated=%s', updated);
           return { status: "ok" };
         })
         .catch(function (err) {
