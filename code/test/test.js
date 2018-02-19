@@ -2,6 +2,7 @@
 
 const server = require('../server')(),
   chai = require('chai'),
+  should = chai.should(),
   expect = chai.expect,
   request = require('supertest'),
   config = require('../configs'),
@@ -31,7 +32,7 @@ describe('Games API Integration Tests', function () {
   const opponentName = "Benedict";
 
   let gamecreated = {};
-  describe('## Create game ', function () {
+  describe('# Create game ', function () {
     it('should create a game', function (done) {
       request(app)
         .post('/games/new')
@@ -70,7 +71,7 @@ describe('Games API Integration Tests', function () {
 
 
   let opponentjoined = {};
-  describe('## Join opponent to game ', function () {
+  describe('# Join opponent to game ', function () {
     it('should join opponent to game', function (done) {
       request(app)
         .post('/games/join')
@@ -93,7 +94,7 @@ describe('Games API Integration Tests', function () {
   });
 
   //checking double joining
-  describe('## Join second opponent to game ', function () {
+  describe('# Join second opponent to game ', function () {
     it('should not join opponent to game', function (done) {
       request(app)
         .post('/games/join')
@@ -127,7 +128,7 @@ describe('Games API Integration Tests', function () {
     });
   });
 
-  describe('## Opponent step 1', function () {
+  describe('# Opponent step 1', function () {
     it('should do opponent step', function (done) {
       request(app)
         .post('/games/do_step')
@@ -165,7 +166,7 @@ describe('Games API Integration Tests', function () {
   });
 
   //check wrong row
-  describe('## Owner step 1 with wrong row', function () {
+  describe('# Owner step 1 with wrong row', function () {
     it('should do owner step', function (done) {
       request(app)
         .post('/games/do_step')
@@ -184,7 +185,7 @@ describe('Games API Integration Tests', function () {
   });
 
   //success step
-  describe('## Owner step 1', function () {
+  describe('# Owner step 1', function () {
     it('should do owner step', function (done) {
       request(app)
         .post('/games/do_step')
@@ -204,7 +205,7 @@ describe('Games API Integration Tests', function () {
   });
 
   //check attempt double step
-  describe('## Owner step - second try', function () {
+  describe('# Owner step - second try', function () {
     it('should do owner step', function (done) {
       request(app)
         .post('/games/do_step')
@@ -240,7 +241,7 @@ describe('Games API Integration Tests', function () {
     });
   });
 
-  describe('## Opponent step 2', function () {
+  describe('# Opponent step 2', function () {
     it('should do opponent step', function (done) {
       request(app)
         .post('/games/do_step')
@@ -259,7 +260,8 @@ describe('Games API Integration Tests', function () {
     });
   });
 
-  describe('## Update owner\'s tokens', function () {
+
+  describe('# Update owner\'s tokens', function () {
     it('should update owner\'s tokens', function (done) {
       request(app)
         .post('/games/update')
@@ -274,13 +276,32 @@ describe('Games API Integration Tests', function () {
           expect(res.body.accessToken).to.be.a('string').to.have.lengthOf(8);
           expect(res.body.refreshToken).to.be.a('string').to.have.lengthOf(8);
           gamecreated.accessToken = res.body.accessToken;
+          gamecreated.expiredRefreshToken = gamecreated.refreshToken;
           gamecreated.refreshToken = res.body.refreshToken;
           done();
         });
     });
   });
 
-  describe('## Owner step 2', function () {
+  describe('# Repeat update owner\'s tokens', function () {
+    it('should not update owner\'s tokens', function (done) {
+      request(app)
+        .post('/games/update')
+        .set('refreshToken', gamecreated.expiredRefreshToken)
+        .send({
+          name: ownerName
+        })
+        .end(function (err, res) {
+          expect(res.body.status).to.equal("error");
+          expect(res.body.code).to.equal(60);
+          should.not.exist(res.body.accessToken);
+          should.not.exist(res.body.refreshToken);
+          done();
+        });
+    });
+  });
+
+  describe('# Owner step 2', function () {
     it('should do owner step', function (done) {
       request(app)
         .post('/games/do_step')
@@ -299,7 +320,7 @@ describe('Games API Integration Tests', function () {
     });
   });
 
-  describe('## Opponent step 3', function () {
+  describe('# Opponent step 3', function () {
     it('should do opponent step', function (done) {
       request(app)
         .post('/games/do_step')
