@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon index.js",
     "test": "set NODE_ENV=test&&mocha --timeout 10000",
-    "test-cover": "nyc --reporter=html --reporter=text node_modules/mocha/bin/_mocha"
+    "test-cover": "set NODE_ENV=test&&nyc --reporter=html --reporter=text node_modules/mocha/bin/_mocha"
   },
   "repository": {
     "type": "git",
